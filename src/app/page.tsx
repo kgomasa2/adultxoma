@@ -2,14 +2,23 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <main className="h-screen w-full bg-white flex justify-center items-center overflow-hidden font-sans py-10">
+    // MAIN:
+    // Mobile: h-auto min-h-screen (розтягується вниз), overflow-y-auto (скрол сторінки)
+    // Desktop (lg:): h-screen (фіксований), overflow-hidden (без скролу сторінки)
+    <main className="h-auto min-h-screen lg:h-screen w-full bg-white flex justify-center lg:items-center font-sans py-4 lg:py-10 overflow-y-auto lg:overflow-hidden">
       
-      {/* ЦЕНТРАЛЬНИЙ КОНТЕЙНЕР */}
-      <div className="flex w-full max-w-[1400px] h-full gap-[10px] px-4">
+      {/* КОНТЕЙНЕР:
+          Mobile: flex-col (вертикально), h-auto (висота по контенту), gap-8 (відступи між блоками)
+          Desktop (lg:): flex-row (горизонтально), h-full (фіксована висота), gap-[10px]
+      */}
+      <div className="flex flex-col lg:flex-row w-full max-w-[1400px] h-auto lg:h-full gap-8 lg:gap-[10px] px-4">
         
-        {/* === КОЛОНА 1: SHOP (xoma.shop + Free Items) === */}
-        <div className="w-1/4 h-full flex flex-col shadow-xl bg-white overflow-hidden">
-           <div className="h-full overflow-y-auto custom-scrollbar flex flex-col gap-0">
+        {/* === БЛОК 1: SHOP === */}
+        {/* Mobile: w-full (на всю ширину), h-auto (висота по контенту)
+            Desktop: w-1/4 (чверть), h-full (фікс) */}
+        <div className="w-full lg:w-1/4 h-auto lg:h-full flex flex-col shadow-xl bg-white overflow-hidden shrink-0">
+           {/* Внутрішній скрол тільки для Desktop (lg:overflow-y-auto) */}
+           <div className="h-auto lg:h-full lg:overflow-y-auto custom-scrollbar flex flex-col gap-0">
               
               {/* Header + Logo */}
               <div className="bg-xoma-header w-full py-2 text-center sticky top-0 z-10 border-b border-white/20">
@@ -25,7 +34,7 @@ export default function Home() {
               <div className="bg-xoma-header w-full py-2 text-center sticky top-0 z-10 border-t border-white/20">
                  <h2 className="text-black text-[20px] font-bold leading-none">Free Items</h2>
               </div>
-              <div className="bg-xoma-bg flex flex-col items-center gap-8 px-4 py-8 min-h-full">
+              <div className="bg-xoma-bg flex flex-col items-center gap-8 px-4 py-8">
                 {/* Item 1 */}
                 <div className="flex flex-col items-center gap-2 w-full">
                   <div className="w-full aspect-[443/590] relative shadow-sm">
@@ -51,19 +60,17 @@ export default function Home() {
            </div>
         </div>
 
-        {/* === КОЛОНА 2: NEWS (Оновлена!) === */}
-        <div className="w-1/4 h-full flex flex-col shadow-xl bg-white overflow-hidden">
-           <div className="h-full overflow-y-auto custom-scrollbar flex flex-col gap-0 bg-xoma-bg">
+        {/* === БЛОК 2: NEWS === */}
+        <div className="w-full lg:w-1/4 h-auto lg:h-full flex flex-col shadow-xl bg-white overflow-hidden shrink-0">
+           <div className="h-auto lg:h-full lg:overflow-y-auto custom-scrollbar flex flex-col gap-0 bg-xoma-bg">
                <div className="bg-xoma-purple w-full py-2 text-center sticky top-0 z-10">
                   <h2 className="text-black text-[20px] font-bold leading-none">News</h2>
                </div>
 
                <div className="p-5 flex flex-col gap-6">
-                  
-                  {/* ГОЛОВНА НОВИНА (Featured News) */}
+                  {/* Featured News */}
                   <div className="flex flex-col gap-3 w-full border-b border-gray-300 pb-6">
                       <div className="w-full aspect-video bg-gray-400 relative shadow-sm">
-                         {/* Велика картинка */}
                          <Image src="/image 1.png" alt="featured news" fill className="object-cover" /> 
                       </div>
                       <div className="flex flex-col gap-1">
@@ -71,13 +78,13 @@ export default function Home() {
                              SMS Pommern: The Lost Giant
                           </h3>
                           <p className="text-black text-[13px] leading-snug">
-                             A Deutschland-class pre-dreadnought battleship built for the Imperial German Navy. A deep dive into history.
+                             A Deutschland-class pre-dreadnought battleship built for the Imperial German Navy.
                           </p>
                           <span className="text-gray-500 text-[11px] mt-1">02/12 22:23</span>
                       </div>
                   </div>
 
-                  {/* ЗВИЧАЙНІ НОВИНИ (Standard News List) */}
+                  {/* Standard News */}
                   <div className="flex gap-3 items-start">
                       <div className="w-[80px] h-[60px] bg-gray-400 shrink-0 relative shadow-sm">
                           <Image src="/image 128.png" alt="news" fill className="object-cover" />
@@ -90,15 +97,14 @@ export default function Home() {
                       </div>
                   </div>
 
-                  {/* Додаткові новини для скролу */}
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                  {[1, 2, 3, 4].map((i) => (
                       <div key={i} className="flex gap-3 items-start">
                         <div className="w-[80px] h-[60px] bg-gray-400 shrink-0 relative shadow-sm">
                             <Image src="/mock6 done 1.png" alt="news" fill className="object-cover" />
                         </div>
                         <div className="flex flex-col">
                             <p className="text-black text-[12px] leading-tight">
-                               <span className="font-bold">Update {i}</span>. The archive has been updated with new materials from 2024. Check out the latest additions.
+                               <span className="font-bold">Update {i}</span>. The archive has been updated with new materials.
                             </p>
                             <span className="text-gray-500 text-[10px] mt-1">01/12 10:00</span>
                         </div>
@@ -108,13 +114,13 @@ export default function Home() {
            </div>
         </div>
 
-        {/* === КОЛОНА 3: PROJECTS === */}
-        <div className="w-1/4 h-full flex flex-col shadow-xl bg-white overflow-hidden">
-           <div className="h-full overflow-y-auto custom-scrollbar flex flex-col gap-0">
+        {/* === БЛОК 3: PROJECTS === */}
+        <div className="w-full lg:w-1/4 h-auto lg:h-full flex flex-col shadow-xl bg-white overflow-hidden shrink-0">
+           <div className="h-auto lg:h-full lg:overflow-y-auto custom-scrollbar flex flex-col gap-0">
               <div className="bg-xoma-header w-full py-2 text-center sticky top-0 z-10">
                  <h2 className="text-black text-[20px] font-bold leading-none">Projects</h2>
               </div>
-              <div className="bg-xoma-bg flex flex-col items-center gap-8 px-4 py-8 min-h-full">
+              <div className="bg-xoma-bg flex flex-col items-center gap-8 px-4 py-8">
                  <div className="flex flex-col items-center gap-2 w-full">
                   <div className="w-full aspect-[443/590] relative shadow-sm">
                     <Image src="/mock6 done 1.png" alt="Solar Wind" fill className="object-cover" />
@@ -143,9 +149,9 @@ export default function Home() {
            </div>
         </div>
 
-        {/* === КОЛОНА 4: ABOUT === */}
-        <div className="w-1/4 h-full flex flex-col shadow-xl bg-white overflow-hidden">
-           <div className="h-full overflow-y-auto custom-scrollbar flex flex-col gap-0 bg-xoma-bg">
+        {/* === БЛОК 4: ABOUT === */}
+        <div className="w-full lg:w-1/4 h-auto lg:h-full flex flex-col shadow-xl bg-white overflow-hidden shrink-0">
+           <div className="h-auto lg:h-full lg:overflow-y-auto custom-scrollbar flex flex-col gap-0 bg-xoma-bg">
                <div className="bg-xoma-green w-full py-2 text-center sticky top-0 z-10">
                   <h2 className="text-black text-[20px] font-bold leading-none">About</h2>
                </div>
@@ -164,10 +170,6 @@ export default function Home() {
                             <div className="flex gap-2"><span className="w-[90px] shrink-0 font-bold">Жанр</span><span>візуальне мистецтво</span></div>
                             <div className="flex gap-2"><span className="w-[90px] shrink-0 font-bold">Стиль</span><span>маргінальний гламур</span></div>
                             <div className="flex gap-2"><span className="w-[90px] shrink-0 font-bold">Імейл</span><span>xomashop@gmail.com</span></div>
-                            
-                            <div className="mt-4 text-[12px] leading-relaxed opacity-80">
-                                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                            </div>
                         </div>
                     </div>
                </div>

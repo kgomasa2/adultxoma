@@ -7,13 +7,22 @@ import * as THREE from 'three';
 
 // --- КОМПОНЕНТ КНИГИ (3D MODEL) ---
 function Book() {
-  // Завантажуємо текстури
+  // Завантажуємо текстури. ФАЙЛИ МАЮТЬ БУТИ В ПАПЦІ /public
   const coverTexture = useLoader(THREE.TextureLoader, '/cover_zine.png');
   const pagesTexture = useLoader(THREE.TextureLoader, '/A5 - 2.png'); 
 
-  // Корекція кольору, щоб не було тьмяним
+  // Корекція кольору
   coverTexture.colorSpace = THREE.SRGBColorSpace;
   pagesTexture.colorSpace = THREE.SRGBColorSpace;
+
+  // --- ФІКС РОЗТЯГНУТОЇ ТЕКСТУРИ ---
+  // Вмикаємо режим повторення (тайлінгу) для текстури сторінок
+  pagesTexture.wrapS = THREE.RepeatWrapping;
+  pagesTexture.wrapT = THREE.RepeatWrapping;
+  // Налаштовуємо кількість повторень. 
+  // (4, 4) означає, що текстура повториться 4 рази по горизонталі і вертикалі на грані.
+  // Це має прибрати ефект "сплюснення".
+  pagesTexture.repeat.set(4, 4);
 
   // Розміри книги: Ширина 3, Висота 4.2, Товщина 0.25
   const args: [number, number, number] = [3, 4.2, 0.25];
@@ -27,8 +36,8 @@ function Book() {
       {/* 0. Right (Зріз сторінок справа) -> Текстура сторінок */}
       <meshBasicMaterial map={pagesTexture} />
       
-      {/* 1. Left (Корінець) -> Білий колір */}
-      <meshBasicMaterial color="white" />
+      {/* 1. Left (Корінець) -> Просто білий колір (без текстури) */}
+      <meshBasicMaterial color="#ffffff" />
       
       {/* 2. Top (Зріз зверху) -> Текстура сторінок */}
       <meshBasicMaterial map={pagesTexture} />
@@ -64,16 +73,16 @@ export default function BookPage() {
       {/* --- 3D СЦЕНА (CANVAS) --- */}
       <div 
         className="book-wrapper relative z-0 w-full 
-                   /* Mobile Height: 75vh */
-                   h-[75vh] 
+                   /* Mobile Height: Збільшено до 80vh, щоб ще опустити текст */
+                   h-[80vh] 
                    /* Desktop: Full screen behind panel */
                    md:absolute md:top-0 md:left-0 md:w-full md:h-full"
       >
         {/* SCALING: 
-            Mobile: scale-[1.15] (було 1.3, зменшив на ~10%)
+            Mobile: scale-[1.2] (Ще трохи більша книга)
             Desktop: scale-100 (без змін) 
         */}
-        <div className="w-full h-full scale-[1.15] md:scale-100">
+        <div className="w-full h-full scale-[1.2] md:scale-100">
             <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
             <ambientLight intensity={1} />
             
@@ -83,7 +92,7 @@ export default function BookPage() {
                 enableZoom={false} 
                 enablePan={false}
                 autoRotate={true}
-                autoRotateSpeed={3.4} /* Швидкість зменшено з 4.0 до 3.4 (-15%) */
+                autoRotateSpeed={3.4}
             />
             </Canvas>
         </div>

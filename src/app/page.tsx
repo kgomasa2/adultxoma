@@ -1,38 +1,47 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
 // --- КОМПОНЕНТ КНИГИ (3D MODEL) ---
 function Book() {
-  // Завантажуємо базові текстури
-  const coverTexture = useLoader(THREE.TextureLoader, '/cover_zine.png');
-  const pagesTextureBase = useLoader(THREE.TextureLoader, '/A5 - 2.png');
+  // 1. Завантажуємо текстури
+  const [cover, pages] = useLoader(THREE.TextureLoader, [
+    '/cover_zine.png',
+    '/A5 - 2.png'
+  ]);
 
-  // Корекція кольору
-  coverTexture.colorSpace = THREE.SRGBColorSpace;
-  pagesTextureBase.colorSpace = THREE.SRGBColorSpace;
+  // 2. Налаштування кольору
+  cover.colorSpace = THREE.SRGBColorSpace;
+  pages.colorSpace = THREE.SRGBColorSpace;
 
-  // --- НАЛАШТУВАННЯ ТЕКСТУРИ ДЛЯ БІЧНОЇ ГРАНІ (СПРАВА) ---
-  const rightPageTexture = pagesTextureBase.clone();
-  rightPageTexture.wrapS = THREE.RepeatWrapping;
-  rightPageTexture.wrapT = THREE.RepeatWrapping;
-  // Повторюємо текстуру 1 раз по ширині (товщині) і 4 рази по висоті
-  rightPageTexture.repeat.set(1, 4);
-  rightPageTexture.needsUpdate = true;
+  // 3. Налаштування текстур (Клонуємо, щоб налаштувати по-різному для різних боків)
+  
+  // Текстура для ПРАВОЇ грані (вертикальна)
+  const textureRight = useMemo(() => {
+    const t = pages.clone();
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = THREE.RepeatWrapping;
+    t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(1, 4); // Густота смужок
+    t.needsUpdate = true;
+    return t;
+  }, [pages]);
 
-  // --- НАЛАШТУВАННЯ ТЕКСТУРИ ДЛЯ ВЕРХНЬОЇ ТА НИЖНЬОЇ ГРАНЕЙ ---
-  const topBottomPageTexture = pagesTextureBase.clone();
-  topBottomPageTexture.wrapS = THREE.RepeatWrapping;
-  topBottomPageTexture.wrapT = THREE.RepeatWrapping;
-  // Повертаємо текстуру на 90 градусів, щоб смужки йшли вздовж довгої сторони
-  topBottomPageTexture.rotation = Math.PI / 2;
-  topBottomPageTexture.center.set(0.5, 0.5);
-  // Повторюємо текстуру 3 рази по довжині (ширині книги) і 1 раз по товщині
-  topBottomPageTexture.repeat.set(3, 1);
-  topBottomPageTexture.needsUpdate = true;
+  // Текстура для ВЕРХУ та НИЗУ (горизонтальна)
+  const textureTopBottom = useMemo(() => {
+    const t = pages.clone();
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = THREE.RepeatWrapping;
+    t.wrapT = THREE.RepeatWrapping;
+    t.rotation = Math.PI / 2; // Поворот на 90 градусів
+    t.center.set(0.5, 0.5);
+    t.repeat.set(4, 1); // Густота смужок
+    t.needsUpdate = true;
+    return t;
+  }, [pages]);
 
   // Розміри книги: Ширина 3, Висота 4.2, Товщина 0.25
   const args: [number, number, number] = [3, 4.2, 0.25];
@@ -40,26 +49,26 @@ function Book() {
   return (
     <mesh rotation={[0, -0.5, 0]}>
       <boxGeometry args={args} />
-      {/* Масив матеріалів для 6 граней куба. 
-          Порядок у Three.js: Right, Left, Top, Bottom, Front, Back */}
       
-      {/* 0. Right (Зріз сторінок справа) -> Вертикальне повторення */}
-      <meshBasicMaterial map={rightPageTexture} />
+      {/* ЯВНЕ ПРИКРІПЛЕННЯ МАТЕРІАЛІВ ДО ГРАНЕЙ (0-5) */}
       
-      {/* 1. Left (Корінець) -> Просто білий колір */}
-      <meshBasicMaterial color="#ffffff" />
+      {/* 0: Right (Справа) */}
+      <meshBasicMaterial attach="material-0" map={textureRight} />
       
-      {/* 2. Top (Зріз зверху) -> Горизонтальне повторення (повернута текстура) */}
-      <meshBasicMaterial map={topBottomPageTexture} />
+      {/* 1: Left (Зліва/Корінець) - Білий колір */}
+      <meshBasicMaterial attach="material-1" color="#ffffff" />
       
-      {/* 3. Bottom (Зріз знизу) -> Горизонтальне повторення (повернута текстура) */}
-      <meshBasicMaterial map={topBottomPageTexture} />
+      {/* 2: Top (Зверху) */}
+      <meshBasicMaterial attach="material-2" map={textureTopBottom} />
       
-      {/* 4. Front (Обкладинка) */}
-      <meshBasicMaterial map={coverTexture} />
+      {/* 3: Bottom (Знизу) */}
+      <meshBasicMaterial attach="material-3" map={textureTopBottom} />
       
-      {/* 5. Back (Задня обкладинка) */}
-      <meshBasicMaterial map={coverTexture} />
+      {/* 4: Front (Перед) */}
+      <meshBasicMaterial attach="material-4" map={cover} />
+      
+      {/* 5: Back (Зад) */}
+      <meshBasicMaterial attach="material-5" map={cover} />
     </mesh>
   );
 }
@@ -83,15 +92,10 @@ export default function BookPage() {
       {/* --- 3D СЦЕНА (CANVAS) --- */}
       <div 
         className="book-wrapper relative z-0 w-full 
-                   /* Mobile Height: 80vh */
                    h-[80vh] 
-                   /* Desktop: Full screen behind panel */
                    md:absolute md:top-0 md:left-0 md:w-full md:h-full"
       >
-        {/* SCALING: 
-            Mobile: scale-[1.2]
-            Desktop: scale-100 
-        */}
+        {/* SCALING */}
         <div className="w-full h-full scale-[1.2] md:scale-100">
             <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
             <ambientLight intensity={1} />

@@ -3,14 +3,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 export default function BookPage() {
-  // --- Стан для крутіння (авто + ручне) ---
+  // --- Стан для крутіння ---
   const [rotX, setRotX] = useState(0);
   const [rotY, setRotY] = useState(-30);
   const [isDragging, setIsDragging] = useState(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
 
-  // --- Обробники подій для ручного крутіння ---
+  // --- Обробники подій ---
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
+    // Блокуємо крутіння, якщо клік був на інтерфейсі (кнопках/тексті) мобільної панелі
+    const target = e.target as HTMLElement;
+    if (target.closest('.mobile-panel')) return;
+
     setIsDragging(true);
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
@@ -60,7 +64,6 @@ export default function BookPage() {
     };
   }, [isDragging]);
 
-
   return (
     <div className="relative min-h-screen w-full bg-[#FF0000] overflow-hidden">
       
@@ -69,10 +72,10 @@ export default function BookPage() {
         
         body { margin: 0; font-family: 'Helvetica Neue', sans-serif; }
         
+        /* 3D SCENE STYLES */
         .book-scene {
           perspective: 1500px;
           cursor: grab;
-          transform: scale(1.16); /* Збільшено на 16% */
         }
         .book-scene:active {
           cursor: grabbing;
@@ -85,47 +88,44 @@ export default function BookPage() {
           backface-visibility: visible;
         }
 
-        /* --- РОЗМІРИ КНИГИ (товщина 25px) --- */
-        
-        /* ОБКЛАДИНКИ */
-        .front {
+        /* Front & Back (Z-offset = half thickness = 12.5px) */
+        .front, .back {
           transform: translateZ(12.5px);
           background: url('/cover_zine.png') center/cover no-repeat;
         }
-        .back {
-          transform: rotateY(180deg) translateZ(12.5px);
-          background: url('/cover_zine.png') center/cover no-repeat;
-        }
+        .back { transform: rotateY(180deg) translateZ(12.5px); }
         
-        /* КОРІНЕЦЬ (білий) */
+        /* Spine */
         .spine {
           width: 25px;
           transform: rotateY(-90deg) translateZ(12.5px);
           background: #fff;
         }
         
-        /* БІЧНИЙ ЗРІЗ (смужки вертикальні) */
+        /* Pages Texture (Right side) */
         .right {
           width: 25px;
           transform: rotateY(90deg) translateZ(287.5px);
-          /* Градієнт 90deg створює вертикальні лінії вздовж висоти */
           background: repeating-linear-gradient(90deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
-        
-        /* ВЕРХНІЙ І НИЖНІЙ ЗРІЗ (смужки горизонтальні вздовж товщини) */
+
+        /* Top & Bottom - ВИПРАВЛЕНА ГЕОМЕТРІЯ */
         .top { 
           height: 25px;
+          top: 0; /* Прибиваємо до верху */
+          /* Повертаємо на 90 градусів і висуваємо на 12.5px, щоб стикувалося з обкладинкою */
           transform: rotateX(90deg) translateZ(12.5px); 
-          /* Градієнт 0deg створює лінії, що йдуть вздовж довгої сторони (паралельно обкладинці) */
           background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
         .bottom { 
           height: 25px;
-          transform: rotateX(-90deg) translateZ(395px);
+          bottom: 0; /* Прибиваємо до низу */
+          /* Повертаємо на -90 градусів і висуваємо на 12.5px */
+          transform: rotateX(-90deg) translateZ(12.5px);
           background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
 
-        /* --- ТИПОГРАФІКА --- */
+        /* TYPOGRAPHY */
         .text-base-custom {
           font-size: 13px;
           line-height: 109.9%;
@@ -136,13 +136,11 @@ export default function BookPage() {
           line-height: 109.9%;
           letter-spacing: -0.04em;
         }
-        
-        /* Стилі для цін */
         .price-text {
           font-size: 23px;
           font-weight: bold;
           line-height: 1;
-          transform: scaleX(1.25); /* Розтягування тексту як у заголовку */
+          transform: scaleX(1.25);
           transform-origin: center;
         }
         .label-text {
@@ -150,39 +148,92 @@ export default function BookPage() {
           letter-spacing: -0.04em;
           font-weight: bold;
           line-height: 1;
-          margin-top: 4px; /* Невеликий відступ від ціни */
+          margin-top: 4px;
         }
       `}</style>
 
-      {/* 3D КНИГА */}
+      {/* --- КНИГА (Спільна для обох версій) --- */}
+      {/* ВИПРАВЛЕННЯ ЦЕНТРУВАННЯ:
+          На десктопі (md:) додано "md:w-[300px] md:h-[420px]", щоб скинути "w-full" з мобільної версії.
+          Це дозволяє absolute center (left-1/2 top-1/2) працювати коректно.
+      */}
       <div 
-        className="book-scene absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[420px] z-0"
+        className="book-wrapper 
+                   w-full h-[55vh] flex justify-center items-center relative z-0
+                   md:absolute md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[300px] md:h-[420px]"
         onMouseDown={handleMouseDown}
         onTouchStart={handleMouseDown}
       >
-        <div 
-          className="book w-full h-full relative transition-transform duration-100 ease-out"
-          style={{ transform: `rotateX(${rotX}deg) rotateY(${rotY}deg)` }}
-        >
-          <div className="face front w-[300px] h-[420px]"></div>
-          <div className="face back w-[300px] h-[420px]"></div>
-          <div className="face spine h-[420px]"></div>
-          <div className="face right h-[420px]"></div>
-          <div className="face top w-[300px]"></div>
-          <div className="face bottom w-[300px]"></div>
+        <div className="book-scene w-[300px] h-[420px] md:scale-[1.16] scale-[0.85]">
+          <div 
+            className="book w-full h-full relative transition-transform duration-100 ease-out"
+            style={{ transform: `rotateX(${rotX}deg) rotateY(${rotY}deg)` }}
+          >
+            <div className="face front w-[300px] h-[420px]"></div>
+            <div className="face back w-[300px] h-[420px]"></div>
+            <div className="face spine h-[420px]"></div>
+            <div className="face right h-[420px]"></div>
+            {/* Top і Bottom тепер мають однакову висоту та текстуру */}
+            <div className="face top w-[300px]"></div>
+            <div className="face bottom w-[300px]"></div>
+          </div>
         </div>
       </div>
 
-      {/* ПРАВА КОЛОНКА (Фіксована ширина 348px) */}
-      <div className="absolute top-0 right-0 flex flex-col z-10 w-[348px]">
-        
-        {/* ОСНОВНА ПАНЕЛЬ */}
+      {/* ========================================= */}
+      {/* MOBILE LAYOUT (< 768px) */}
+      {/* ========================================= */}
+      <div className="mobile-panel md:hidden relative w-full bg-[#D9D9D9] p-[13px] flex flex-col z-10 min-h-[45vh]">
+        <h1 className="title-custom font-bold m-0 origin-left scale-x-125 w-[80%] mb-[18px] leading-[1.1]">
+          Зін «Мама»<br />
+          Христина Новікова
+        </h1>
+
+        <div className="flex flex-col gap-[5px] mb-[18px]">
+            <a 
+                href="ВСТАВ_СЮДИ_ЛІНК_НА_БАНКУ" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="bg-white text-black w-full h-[82px] flex justify-center items-center text-[25px] font-bold tracking-[-0.04em] no-underline hover:scale-[1.01] transition-transform"
+            >
+                Monopay
+            </a>
+
+            <div className="flex w-full gap-[5px]">
+                <div className="flex-1 bg-white text-black h-[63px] flex flex-col justify-center items-center">
+                    <div className="price-text">666₴</div>
+                    <div className="label-text">pre-order</div>
+                </div>
+                <div className="flex-1 bg-[#ACACAC] text-black h-[63px] flex flex-col justify-center items-center">
+                    <div className="price-text relative">
+                        <span className="opacity-40">777₴</span>
+                        <span className="absolute left-0 top-1/2 w-full h-[2px] bg-black opacity-40 -translate-y-1/2"></span>
+                    </div>
+                    <div className="label-text">full price</div>
+                </div>
+            </div>
+        </div>
+
+        <p className="text-base-custom font-bold mb-[18px]">
+          Цей зін апропріює естетику культової пачки Marlboro Red, перетворюючи хроніку життя в окупації на візуальний об’єкт із попередженням про небезпеку. Червоний колір тривоги тут римується з агресивним брендингом, а очікування повідомлень від мами з Маріуполя (2022–2026) стає метафорою залежності, від якої неможливо відмовитися. Це документація зв’язку, де буденні поради «поїсти супу» перемішані зі звуками вибухів, а любов до рідного дому межує з фатальним ризиком там залишатися.
+        </p>
+
+        <div className="text-base-custom font-bold mb-5">
+          Дизайн та верстка: Володимир Хоменко<br />
+          Видавництво: IDINAHUI PUBLISHING<br />
+          Формат А5, 68 с.<br />
+          Київ, 2026
+        </div>
+      </div>
+
+
+      {/* ========================================= */}
+      {/* DESKTOP LAYOUT (>= 768px) */}
+      {/* ========================================= */}
+      <div className="hidden md:flex absolute top-0 right-0 flex-col z-10 w-[348px]">
         <div 
           className="bg-[#D9D9D9] text-black flex flex-col relative"
-          style={{
-            height: '432px',
-            padding: '15px 18px 15px 14px'
-          }}
+          style={{ height: '432px', padding: '15px 18px 15px 14px' }}
         >
           <h1 className="title-custom font-bold m-0 origin-left scale-x-125 w-[80%] mb-5 leading-[1.1]">
             Зін «Мама»<br />
@@ -199,37 +250,26 @@ export default function BookPage() {
           <p className="text-base-custom font-bold mb-auto">
             Цей зін апропріює естетику культової пачки Marlboro Red, перетворюючи хроніку життя в окупації на візуальний об’єкт із попередженням про небезпеку. Червоний колір тривоги тут римується з агресивним брендингом, а очікування повідомлень від мами з Маріуполя (2022–2026) стає метафорою залежності, від якої неможливо відмовитися. Це документація зв’язку, де буденні поради «поїсти супу» перемішані зі звуками вибухів, а любов до рідного дому межує з фатальним ризиком там залишатися.
           </p>
-
-          <a 
-            href="ВСТАВ_СЮДИ_ЛІНК_НА_БАНКУ" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="bg-white text-black h-[82px] w-full flex justify-center items-center text-[25px] font-bold tracking-[-0.04em] no-underline hover:scale-[1.02] transition-transform mt-4"
-          >
+          <a href="ВСТАВ_СЮДИ_ЛІНК_НА_БАНКУ" target="_blank" rel="noopener noreferrer" className="bg-white text-black h-[82px] w-full flex justify-center items-center text-[25px] font-bold tracking-[-0.04em] no-underline hover:scale-[1.02] transition-transform mt-4">
             Monopay
           </a>
         </div>
-
-        {/* БЛОК ЦІН (Знизу) - Висота ~63px */}
+        
         <div className="flex w-full" style={{ height: '63px' }}>
-          {/* Pre-order (White) */}
           <div className="w-1/2 bg-white text-black flex flex-col justify-center items-center">
              <div className="price-text">666₴</div>
              <div className="label-text">pre-order</div>
           </div>
-          
-          {/* Full price (Grey) */}
           <div className="w-1/2 bg-[#ACACAC] text-black flex flex-col justify-center items-center">
              <div className="price-text relative">
                 <span className="opacity-40">777₴</span>
-                {/* Лінія перекреслення */}
                 <span className="absolute left-0 top-1/2 w-full h-[2px] bg-black opacity-40 -translate-y-1/2"></span>
              </div>
              <div className="label-text">full price</div>
           </div>
         </div>
-
       </div>
+
     </div>
   );
 }

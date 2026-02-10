@@ -3,14 +3,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 export default function BookPage() {
-  // --- Логіка крутіння (З твоєї стабільної версії) ---
   const [rotX, setRotX] = useState(0);
   const [rotY, setRotY] = useState(-30);
   const [isDragging, setIsDragging] = useState(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
 
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-    // Блокуємо крутіння, якщо клікаємо по інтерфейсу, а не по червоному фону
     const target = e.target as HTMLElement;
     if (target.closest('.mobile-panel') || target.closest('.desktop-panel')) return;
 
@@ -67,7 +65,6 @@ export default function BookPage() {
   return (
     <div className="relative min-h-screen w-full bg-[#FF0000] overflow-x-hidden flex flex-col md:block">
       
-      {/* CSS (Використовуємо dangerouslySetInnerHTML для Vercel) */}
       <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap');
         
@@ -76,53 +73,68 @@ export default function BookPage() {
         .book-scene {
           perspective: 1500px;
           cursor: grab;
-          /* Стандартний scale */
+          /* Примусово вмикаємо апаратне прискорення */
+          transform: translate3d(0,0,0);
         }
         .book-scene:active {
           cursor: grabbing;
         }
+        
         .book {
           transform-style: preserve-3d;
           position: relative;
           width: 100%;
           height: 100%;
         }
+
+        /* --- ГОЛОВНИЙ ФІКС ДЛЯ iOS --- */
         .face {
           position: absolute;
-          backface-visibility: visible; /* Як у твоїй робочій версії */
+          /* Ховаємо зворотній бік граней, щоб вони не мерехтіли */
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden; 
+          /* Робимо грані непрозорими */
+          background-color: #fff;
+          /* Фікс "зубчатих" країв */
+          outline: 1px solid transparent;
         }
 
         /* Front & Back */
         .front {
-          transform: translateZ(12.5px);
+          width: 300px; height: 420px;
+          transform: rotateY(0deg) translateZ(12.5px);
           background: url('/cover_zine.png') center/cover no-repeat;
         }
+        /* Задня частина розгорнута на 180, щоб "дивитись" назовні */
         .back {
+          width: 300px; height: 420px;
           transform: rotateY(180deg) translateZ(12.5px);
           background: url('/cover_zine.png') center/cover no-repeat;
         }
         
-        /* Spine */
+        /* Spine (Корінець) */
         .spine {
-          width: 25px;
+          width: 25px; height: 420px;
           transform: rotateY(-90deg) translateZ(12.5px);
           background: #fff;
         }
         
-        /* Pages Texture */
+        /* Right (Торцева сторона сторінок) */
         .right {
-          width: 25px;
-          transform: rotateY(90deg) translateZ(287.5px);
+          width: 25px; height: 420px;
+          transform: rotateY(90deg) translateZ(287.5px); /* 300 - 12.5 */
           background: repeating-linear-gradient(90deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
+
+        /* Top & Bottom */
         .top { 
-          height: 25px;
+          width: 300px; height: 25px;
           top: 0;
           transform: rotateX(90deg) translateZ(12.5px); 
           background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
         .bottom { 
-          height: 25px;
+          width: 300px; height: 25px;
           bottom: 0; 
           transform: rotateX(-90deg) translateZ(12.5px);
           background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
@@ -155,13 +167,11 @@ export default function BookPage() {
         }
       `}} />
 
-      {/* --- КНИГА (Спільна) --- */}
+      {/* --- КНИГА --- */}
       <div 
         className="book-wrapper 
                    relative z-0 flex justify-center items-center w-full
-                   /* Mobile: висота 65% екрану, щоб текст був знизу */
-                   h-[65vh] 
-                   /* Desktop: абсолютне позиціонування по центру */
+                   h-[60vh] 
                    md:absolute md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[300px] md:h-[420px] md:h-auto"
         onMouseDown={handleMouseDown}
         onTouchStart={handleMouseDown}
@@ -171,20 +181,17 @@ export default function BookPage() {
             className="book"
             style={{ transform: `rotateX(${rotX}deg) rotateY(${rotY}deg)` }}
           >
-            <div className="face front w-[300px] h-[420px]"></div>
-            <div className="face back w-[300px] h-[420px]"></div>
-            <div className="face spine h-[420px]"></div>
-            <div className="face right h-[420px]"></div>
-            <div className="face top w-[300px]"></div>
-            <div className="face bottom w-[300px]"></div>
+            <div className="face front"></div>
+            <div className="face back"></div>
+            <div className="face spine"></div>
+            <div className="face right"></div>
+            <div className="face top"></div>
+            <div className="face bottom"></div>
           </div>
         </div>
       </div>
 
-      {/* ========================================= */}
-      {/* MOBILE LAYOUT (< 768px) */}
-      {/* ========================================= */}
-      {/* Цей блок йде ПІСЛЯ блоку книги в потоці (flex-col), тому він буде знизу, а не поверх */}
+      {/* --- MOBILE PANEL --- */}
       <div className="mobile-panel md:hidden relative w-full bg-[#D9D9D9] p-[13px] flex flex-col z-10 flex-grow">
         <h1 className="title-custom font-bold m-0 origin-left scale-x-125 w-[80%] mb-[18px]">
           Зін «Мама»<br />
@@ -229,10 +236,7 @@ export default function BookPage() {
       </div>
 
 
-      {/* ========================================= */}
-      {/* DESKTOP LAYOUT (>= 768px) */}
-      {/* ========================================= */}
-      {/* Абсолютне позиціонування, як було раніше */}
+      {/* --- DESKTOP PANEL --- */}
       <div className="desktop-panel hidden md:flex absolute top-0 right-0 flex-col z-10 w-[348px]">
         <div 
           className="bg-[#D9D9D9] text-black flex flex-col relative"

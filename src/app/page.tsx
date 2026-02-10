@@ -1,199 +1,97 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useMemo } from 'react';
+import { Canvas, useLoader } from '@react-three/fiber';
+import { OrbitControls, useTexture } from '@react-three/drei';
+import * as THREE from 'three';
 
-export default function BookPage() {
-  const [rotX, setRotX] = useState(0);
-  const [rotY, setRotY] = useState(-30);
-  const [isDragging, setIsDragging] = useState(false);
-  const lastMousePos = useRef({ x: 0, y: 0 });
-
-  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.closest('.mobile-panel') || target.closest('.desktop-panel')) return;
-
-    setIsDragging(true);
-    const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
-    const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
-    lastMousePos.current = { x: clientX, y: clientY };
-  };
-
-  const handleMouseMove = (e: MouseEvent | TouchEvent) => {
-    if (!isDragging) return;
-    
-    e.preventDefault(); // Запобігає скролу на мобільних
-    
-    // @ts-ignore
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    // @ts-ignore
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-    const deltaX = clientX - lastMousePos.current.x;
-    const deltaY = clientY - lastMousePos.current.y;
-
-    setRotY((prev) => prev + deltaX * 0.5);
-    setRotX((prev) => Math.max(-45, Math.min(45, prev - deltaY * 0.5)));
-
-    lastMousePos.current = { x: clientX, y: clientY };
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  useEffect(() => {
-    let animationFrameId: number;
-    const animate = () => {
-      if (!isDragging) {
-        setRotY(prev => prev + 0.15); 
+// --- КОМПОНЕНТ КНИГИ (3D MODEL) ---
+function Book() {
+  // Завантажуємо твою обкладинку
+  const coverTexture = useLoader(THREE.TextureLoader, '/cover_zine.png');
+  
+  // Генеруємо текстуру смужок (сторінок) програмно, щоб не треба було файлів
+  const pagesTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 64, 64);
+      ctx.fillStyle = '#e60000'; // Червоні смужки
+      // Малюємо смужки
+      for (let i = 0; i < 64; i += 4) {
+        ctx.fillRect(i, 0, 2, 64); 
       }
-      animationFrameId = requestAnimationFrame(animate);
-    };
-    animate();
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+  }, []);
 
-    const handleMove = (e: MouseEvent | TouchEvent) => handleMouseMove(e);
-    
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('touchmove', handleMove, { passive: false });
-    window.addEventListener('touchend', handleMouseUp);
+  // Розміри книги: Ширина 3, Висота 4.2, Товщина 0.25
+  const args: [number, number, number] = [3, 4.2, 0.25];
 
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleMouseUp);
-    };
-  }, [isDragging]);
+  return (
+    <mesh rotation={[0, -0.5, 0]}> {/* Початковий поворот */}
+      <boxGeometry args={args} />
+      {/* Масив матеріалів для 6 граней куба: 
+          Order: Right, Left, Top, Bottom, Front, Back */}
+      
+      {/* 1. Right (Сторінки збоку) */}
+      <meshBasicMaterial map={pagesTexture} />
+      {/* 2. Left (Корінець - білий) */}
+      <meshBasicMaterial color="white" />
+      {/* 3. Top (Сторінки зверху - треба повернути текстуру) */}
+      <meshBasicMaterial map={pagesTexture} />
+      {/* 4. Bottom (Сторінки знизу) */}
+      <meshBasicMaterial map={pagesTexture} />
+      {/* 5. Front (Обкладинка) */}
+      <meshBasicMaterial map={coverTexture} />
+      {/* 6. Back (Обкладинка ззаду) */}
+      <meshBasicMaterial map={coverTexture} />
+    </mesh>
+  );
+}
 
+// --- ГОЛОВНА СТОРІНКА ---
+export default function BookPage() {
   return (
     <div className="relative min-h-screen w-full bg-[#FF0000] overflow-x-hidden flex flex-col md:block">
       
+      {/* Глобальні стилі шрифтів */}
       <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap');
-        
         body { margin: 0; font-family: 'Helvetica Neue', sans-serif; }
         
-        .book-scene {
-          perspective: 1500px;
-          cursor: grab;
-          transform: translate3d(0,0,0);
-          -webkit-transform: translate3d(0,0,0);
-          touch-action: none; /* КРИТИЧНО для мобільних */
-        }
-        .book-scene:active {
-          cursor: grabbing;
-        }
-        
-        .book {
-          transform-style: preserve-3d;
-          position: relative;
-          width: 100%;
-          height: 100%;
-          /* Додаткова оптимізація для плавності */
-          will-change: transform;
-        }
-
-        .face {
-          position: absolute;
-          backface-visibility: hidden;
-          -webkit-backface-visibility: hidden; 
-          background-color: #fff;
-          outline: 1px solid transparent;
-          /* Оптимізація рендерингу */
-          -webkit-transform: translate3d(0,0,0);
-          transform: translate3d(0,0,0);
-        }
-
-        /* Front & Back */
-        .front {
-          width: 300px; height: 420px;
-          transform: rotateY(0deg) translateZ(12.5px);
-          background: url('/cover_zine.png') center/cover no-repeat;
-        }
-        .back {
-          width: 300px; height: 420px;
-          transform: rotateY(180deg) translateZ(12.5px);
-          background: url('/cover_zine.png') center/cover no-repeat;
-        }
-        
-        .spine {
-          width: 25px; height: 420px;
-          transform: rotateY(-90deg) translateZ(12.5px);
-          background: #fff;
-        }
-        
-        .right {
-          width: 25px; height: 420px;
-          transform: rotateY(90deg) translateZ(287.5px);
-          background: repeating-linear-gradient(90deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
-        }
-
-        .top { 
-          width: 300px; height: 25px;
-          top: 0;
-          transform: rotateX(90deg) translateZ(12.5px); 
-          background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
-        }
-        .bottom { 
-          width: 300px; height: 25px;
-          bottom: 0; 
-          transform: rotateX(-90deg) translateZ(12.5px);
-          background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
-        }
-
-        .text-base-custom {
-          font-size: 13px;
-          line-height: 103%;
-          letter-spacing: -0.04em;
-        }
-        .title-custom {
-          font-size: 26px;
-          line-height: 103%;
-          letter-spacing: -0.04em;
-        }
-        .price-text {
-          font-size: 23px;
-          font-weight: bold;
-          line-height: 1;
-          transform: scaleX(1.25);
-          transform-origin: center;
-        }
-        .label-text {
-          font-size: 13px;
-          letter-spacing: -0.04em;
-          font-weight: bold;
-          line-height: 1;
-          margin-top: 4px;
-        }
+        .text-base-custom { font-size: 13px; line-height: 103%; letter-spacing: -0.04em; }
+        .title-custom { font-size: 26px; line-height: 103%; letter-spacing: -0.04em; }
+        .price-text { font-size: 23px; font-weight: bold; line-height: 1; transform: scaleX(1.25); transform-origin: center; }
+        .label-text { font-size: 13px; letter-spacing: -0.04em; font-weight: bold; line-height: 1; margin-top: 4px; }
       `}} />
 
-      {/* --- КНИГА --- */}
-      <div 
-        className="book-wrapper 
-                   relative z-0 flex justify-center items-center w-full
-                   h-[60vh] 
-                   md:absolute md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[300px] md:h-[420px] md:h-auto"
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleMouseDown}
-      >
-        <div className="book-scene w-[300px] h-[420px] scale-[1.1] md:scale-[1.16]">
-          <div 
-            className="book"
-            style={{ transform: `rotateX(${rotX}deg) rotateY(${rotY}deg)` }}
-          >
-            <div className="face front"></div>
-            <div className="face back"></div>
-            <div className="face spine"></div>
-            <div className="face right"></div>
-            <div className="face top"></div>
-            <div className="face bottom"></div>
-          </div>
-        </div>
+      {/* --- 3D СЦЕНА (CANVAS) --- */}
+      <div className="book-wrapper relative z-0 w-full h-[60vh] md:absolute md:top-0 md:left-0 md:w-full md:h-full">
+        <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
+          {/* Світло (хоча для BasicMaterial воно не критичне, але хай буде для об'єму) */}
+          <ambientLight intensity={1} />
+          
+          {/* Сама книга */}
+          <Book />
+
+          {/* Контроли: дозволяють крутити, зумити(відключено), і авто-обертання */}
+          <OrbitControls 
+            enableZoom={false} 
+            enablePan={false}
+            autoRotate={true}
+            autoRotateSpeed={4.0} // Швидкість обертання
+          />
+        </Canvas>
       </div>
 
-      {/* --- MOBILE PANEL --- */}
+      {/* --- MOBILE PANEL (Текст знизу) --- */}
       <div className="mobile-panel md:hidden relative w-full bg-[#D9D9D9] p-[13px] flex flex-col z-10 flex-grow">
         <h1 className="title-custom font-bold m-0 origin-left scale-x-125 w-[80%] mb-[18px]">
           Зін «Мама»<br />
@@ -226,7 +124,7 @@ export default function BookPage() {
         </div>
 
         <p className="text-base-custom font-bold mb-[18px]">
-          Цей зін апропріює естетику культової пачки Marlboro Red, перетворюючи хроніку життя в окупації на візуальний об'єкт із попередженням про небезпеку. Червоний колір тривоги тут римується з агресивним брендингом, а очікування повідомлень від мами з Маріуполя (2022–2026) стає метафорою залежності, від якої неможливо відмовитися. Це документація зв'язку, де буденні поради «поїсти супу» перемішані зі звуками вибухів, а любов до рідного дому межує з фатальним ризиком там залишатися.
+          Цей зін апропріює естетику культової пачки Marlboro Red, перетворюючи хроніку життя в окупації на візуальний об’єкт із попередженням про небезпеку. Червоний колір тривоги тут римується з агресивним брендингом, а очікування повідомлень від мами з Маріуполя (2022–2026) стає метафорою залежності, від якої неможливо відмовитися. Це документація зв’язку, де буденні поради «поїсти супу» перемішані зі звуками вибухів, а любов до рідного дому межує з фатальним ризиком там залишатися.
         </p>
 
         <div className="text-base-custom font-bold mb-5">
@@ -237,7 +135,8 @@ export default function BookPage() {
         </div>
       </div>
 
-      {/* --- DESKTOP PANEL --- */}
+
+      {/* --- DESKTOP PANEL (Текст збоку) --- */}
       <div className="desktop-panel hidden md:flex absolute top-0 right-0 flex-col z-10 w-[348px]">
         <div 
           className="bg-[#D9D9D9] text-black flex flex-col relative"
@@ -256,7 +155,7 @@ export default function BookPage() {
           </div>
 
           <p className="text-base-custom font-bold mb-auto">
-            Цей зін апропріює естетику культової пачки Marlboro Red, перетворюючи хроніку життя в окупації на візуальний об'єкт із попередженням про небезпеку. Червоний колір тривоги тут римується з агресивним брендингом, а очікування повідомлень від мами з Маріуполя (2022–2026) стає метафорою залежності, від якої неможливо відмовитися. Це документація зв'язку, де буденні поради «поїсти супу» перемішані зі звуками вибухів, а любов до рідного дому межує з фатальним ризиком там залишатися.
+            Цей зін апропріює естетику культової пачки Marlboro Red, перетворюючи хроніку життя в окупації на візуальний об’єкт із попередженням про небезпеку. Червоний колір тривоги тут римується з агресивним брендингом, а очікування повідомлень від мами з Маріуполя (2022–2026) стає метафорою залежності, від якої неможливо відмовитися. Це документація зв’язку, де буденні поради «поїсти супу» перемішані зі звуками вибухів, а любов до рідного дому межує з фатальним ризиком там залишатися.
           </p>
           <a href="ВСТАВ_СЮДИ_ЛІНК_НА_БАНКУ" target="_blank" rel="noopener noreferrer" className="bg-white text-black h-[82px] w-full flex justify-center items-center text-[25px] font-bold tracking-[-0.04em] no-underline hover:scale-[1.02] transition-transform mt-4">
             Monopay

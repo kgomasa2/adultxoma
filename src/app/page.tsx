@@ -10,7 +10,6 @@ export default function BookPage() {
 
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    // Блокуємо обертання при кліку на інтерфейс
     if (target.closest('.mobile-panel') || target.closest('.desktop-panel')) return;
 
     setIsDragging(true);
@@ -22,6 +21,8 @@ export default function BookPage() {
   const handleMouseMove = (e: MouseEvent | TouchEvent) => {
     if (!isDragging) return;
     
+    e.preventDefault(); // Запобігає скролу на мобільних
+    
     // @ts-ignore
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     // @ts-ignore
@@ -30,8 +31,8 @@ export default function BookPage() {
     const deltaX = clientX - lastMousePos.current.x;
     const deltaY = clientY - lastMousePos.current.y;
 
-    setRotY((prev) => prev + deltaX * 0.4);
-    setRotX((prev) => Math.max(-60, Math.min(60, prev - deltaY * 0.4)));
+    setRotY((prev) => prev + deltaX * 0.5);
+    setRotX((prev) => Math.max(-45, Math.min(45, prev - deltaY * 0.5)));
 
     lastMousePos.current = { x: clientX, y: clientY };
   };
@@ -50,55 +51,48 @@ export default function BookPage() {
     };
     animate();
 
-    window.addEventListener('mousemove', handleMouseMove);
+    const handleMove = (e: MouseEvent | TouchEvent) => handleMouseMove(e);
+    
+    window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('touchmove', handleMouseMove, { passive: false });
+    window.addEventListener('touchmove', handleMove, { passive: false });
     window.addEventListener('touchend', handleMouseUp);
 
     return () => {
       cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchmove', handleMouseMove);
+      window.removeEventListener('touchmove', handleMove);
       window.removeEventListener('touchend', handleMouseUp);
     };
   }, [isDragging]);
 
   return (
-    <div className="relative min-h-[100dvh] w-full bg-[#FF0000] flex flex-col md:block">
+    <div className="relative min-h-screen w-full bg-[#FF0000] overflow-x-hidden flex flex-col md:block">
       
       <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap');
         
-        body { 
-            margin: 0; 
-            font-family: 'Helvetica Neue', sans-serif;
-            background-color: #FF0000;
-            overflow-x: hidden; /* Важливо для мобілки */
-        }
+        body { margin: 0; font-family: 'Helvetica Neue', sans-serif; }
         
-        .book-wrapper {
-            -webkit-tap-highlight-color: transparent;
-            touch-action: none; 
-        }
-
         .book-scene {
-          perspective: 1200px;
+          perspective: 1500px;
           cursor: grab;
-          transform: translateZ(0); /* Вмикає GPU */
+          transform: translate3d(0,0,0);
+          -webkit-transform: translate3d(0,0,0);
+          touch-action: none; /* КРИТИЧНО для мобільних */
         }
-        
         .book-scene:active {
           cursor: grabbing;
         }
         
         .book {
           transform-style: preserve-3d;
-          -webkit-transform-style: preserve-3d;
           position: relative;
           width: 100%;
           height: 100%;
-          will-change: transform; 
+          /* Додаткова оптимізація для плавності */
+          will-change: transform;
         }
 
         .face {
@@ -106,12 +100,10 @@ export default function BookPage() {
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden; 
           background-color: #fff;
-          
-          /* Цей хак краще для iOS ніж box-shadow, прибирає "зубчики" */
-          outline: 1px solid transparent; 
-          
-          transform-style: preserve-3d;
-          -webkit-transform-style: preserve-3d;
+          outline: 1px solid transparent;
+          /* Оптимізація рендерингу */
+          -webkit-transform: translate3d(0,0,0);
+          transform: translate3d(0,0,0);
         }
 
         /* Front & Back */
@@ -119,7 +111,6 @@ export default function BookPage() {
           width: 300px; height: 420px;
           transform: rotateY(0deg) translateZ(12.5px);
           background: url('/cover_zine.png') center/cover no-repeat;
-          image-rendering: -webkit-optimize-contrast;
         }
         .back {
           width: 300px; height: 420px;
@@ -127,37 +118,31 @@ export default function BookPage() {
           background: url('/cover_zine.png') center/cover no-repeat;
         }
         
-        /* Spine (Корінець) - трохи зменшуємо ширину на 0.5px щоб уникнути накладання */
         .spine {
-          width: 24px; height: 420px; 
-          left: 1px; /* Центруємо через зменшення */
+          width: 25px; height: 420px;
           transform: rotateY(-90deg) translateZ(12.5px);
           background: #fff;
         }
         
-        /* Right (Торцева сторона) */
         .right {
-          width: 24px; height: 420px;
-          left: 1px;
-          transform: rotateY(90deg) translateZ(287.5px); 
+          width: 25px; height: 420px;
+          transform: rotateY(90deg) translateZ(287.5px);
           background: repeating-linear-gradient(90deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
 
-        /* Top & Bottom - теж трохи вужчі */
         .top { 
-          width: 300px; height: 24px;
-          top: 1px;
+          width: 300px; height: 25px;
+          top: 0;
           transform: rotateX(90deg) translateZ(12.5px); 
           background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
         .bottom { 
-          width: 300px; height: 24px;
-          bottom: 1px;
+          width: 300px; height: 25px;
+          bottom: 0; 
           transform: rotateX(-90deg) translateZ(12.5px);
           background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
 
-        /* Typography */
         .text-base-custom {
           font-size: 13px;
           line-height: 103%;
@@ -188,13 +173,12 @@ export default function BookPage() {
       <div 
         className="book-wrapper 
                    relative z-0 flex justify-center items-center w-full
-                   h-[55vh] flex-shrink-0
+                   h-[60vh] 
                    md:absolute md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[300px] md:h-[420px] md:h-auto"
         onMouseDown={handleMouseDown}
         onTouchStart={handleMouseDown}
       >
-        {/* DESKTOP SCALE ЗБІЛЬШЕНО: md:scale-[1.35] */}
-        <div className="book-scene w-[300px] h-[420px] scale-[0.9] md:scale-[1.35]">
+        <div className="book-scene w-[300px] h-[420px] scale-[1.1] md:scale-[1.16]">
           <div 
             className="book"
             style={{ transform: `rotateX(${rotX}deg) rotateY(${rotY}deg)` }}
@@ -210,8 +194,7 @@ export default function BookPage() {
       </div>
 
       {/* --- MOBILE PANEL --- */}
-      {/* Додано pb-20 для безпечного скролу внизу */}
-      <div className="mobile-panel md:hidden relative w-full bg-[#D9D9D9] p-[13px] pb-24 flex flex-col z-10 min-h-min">
+      <div className="mobile-panel md:hidden relative w-full bg-[#D9D9D9] p-[13px] flex flex-col z-10 flex-grow">
         <h1 className="title-custom font-bold m-0 origin-left scale-x-125 w-[80%] mb-[18px]">
           Зін «Мама»<br />
           Христина Новікова
@@ -243,7 +226,7 @@ export default function BookPage() {
         </div>
 
         <p className="text-base-custom font-bold mb-[18px]">
-          Цей зін апропріює естетику культової пачки Marlboro Red, перетворюючи хроніку життя в окупації на візуальний об’єкт із попередженням про небезпеку. Червоний колір тривоги тут римується з агресивним брендингом, а очікування повідомлень від мами з Маріуполя (2022–2026) стає метафорою залежності, від якої неможливо відмовитися. Це документація зв’язку, де буденні поради «поїсти супу» перемішані зі звуками вибухів, а любов до рідного дому межує з фатальним ризиком там залишатися.
+          Цей зін апропріює естетику культової пачки Marlboro Red, перетворюючи хроніку життя в окупації на візуальний об'єкт із попередженням про небезпеку. Червоний колір тривоги тут римується з агресивним брендингом, а очікування повідомлень від мами з Маріуполя (2022–2026) стає метафорою залежності, від якої неможливо відмовитися. Це документація зв'язку, де буденні поради «поїсти супу» перемішані зі звуками вибухів, а любов до рідного дому межує з фатальним ризиком там залишатися.
         </p>
 
         <div className="text-base-custom font-bold mb-5">
@@ -253,7 +236,6 @@ export default function BookPage() {
           Київ, 2026
         </div>
       </div>
-
 
       {/* --- DESKTOP PANEL --- */}
       <div className="desktop-panel hidden md:flex absolute top-0 right-0 flex-col z-10 w-[348px]">
@@ -274,7 +256,7 @@ export default function BookPage() {
           </div>
 
           <p className="text-base-custom font-bold mb-auto">
-            Цей зін апропріює естетику культової пачки Marlboro Red, перетворюючи хроніку життя в окупації на візуальний об’єкт із попередженням про небезпеку. Червоний колір тривоги тут римується з агресивним брендингом, а очікування повідомлень від мами з Маріуполя (2022–2026) стає метафорою залежності, від якої неможливо відмовитися. Це документація зв’язку, де буденні поради «поїсти супу» перемішані зі звуками вибухів, а любов до рідного дому межує з фатальним ризиком там залишатися.
+            Цей зін апропріює естетику культової пачки Marlboro Red, перетворюючи хроніку життя в окупації на візуальний об'єкт із попередженням про небезпеку. Червоний колір тривоги тут римується з агресивним брендингом, а очікування повідомлень від мами з Маріуполя (2022–2026) стає метафорою залежності, від якої неможливо відмовитися. Це документація зв'язку, де буденні поради «поїсти супу» перемішані зі звуками вибухів, а любов до рідного дому межує з фатальним ризиком там залишатися.
           </p>
           <a href="ВСТАВ_СЮДИ_ЛІНК_НА_БАНКУ" target="_blank" rel="noopener noreferrer" className="bg-white text-black h-[82px] w-full flex justify-center items-center text-[25px] font-bold tracking-[-0.04em] no-underline hover:scale-[1.02] transition-transform mt-4">
             Monopay

@@ -17,7 +17,7 @@ function Book() {
   cover.colorSpace = THREE.SRGBColorSpace;
   pages.colorSpace = THREE.SRGBColorSpace;
 
-  // 3. Налаштування текстур (Клонуємо, щоб налаштувати по-різному для різних боків)
+  // 3. Налаштування текстур
   
   // Текстура для ПРАВОЇ грані (вертикальна)
   const textureRight = useMemo(() => {
@@ -25,7 +25,7 @@ function Book() {
     t.colorSpace = THREE.SRGBColorSpace;
     t.wrapS = THREE.RepeatWrapping;
     t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(1, 4); // Густота смужок
+    t.repeat.set(1, 4); 
     t.needsUpdate = true;
     return t;
   }, [pages]);
@@ -36,14 +36,14 @@ function Book() {
     t.colorSpace = THREE.SRGBColorSpace;
     t.wrapS = THREE.RepeatWrapping;
     t.wrapT = THREE.RepeatWrapping;
-    t.rotation = Math.PI / 2; // Поворот на 90 градусів
+    t.rotation = Math.PI / 2;
     t.center.set(0.5, 0.5);
-    t.repeat.set(4, 1); // Густота смужок
+    t.repeat.set(4, 1);
     t.needsUpdate = true;
     return t;
   }, [pages]);
 
-  // Розміри книги: Ширина 3, Висота 4.2, Товщина 0.25
+  // Розміри книги
   const args: [number, number, number] = [3, 4.2, 0.25];
 
   return (
@@ -51,24 +51,12 @@ function Book() {
       <boxGeometry args={args} />
       
       {/* ЯВНЕ ПРИКРІПЛЕННЯ МАТЕРІАЛІВ ДО ГРАНЕЙ (0-5) */}
-      
-      {/* 0: Right (Справа) */}
-      <meshBasicMaterial attach="material-0" map={textureRight} />
-      
-      {/* 1: Left (Зліва/Корінець) - Білий колір */}
-      <meshBasicMaterial attach="material-1" color="#ffffff" />
-      
-      {/* 2: Top (Зверху) */}
-      <meshBasicMaterial attach="material-2" map={textureTopBottom} />
-      
-      {/* 3: Bottom (Знизу) */}
-      <meshBasicMaterial attach="material-3" map={textureTopBottom} />
-      
-      {/* 4: Front (Перед) */}
-      <meshBasicMaterial attach="material-4" map={cover} />
-      
-      {/* 5: Back (Зад) */}
-      <meshBasicMaterial attach="material-5" map={cover} />
+      <meshBasicMaterial attach="material-0" map={textureRight} />       {/* Right */}
+      <meshBasicMaterial attach="material-1" color="#ffffff" />          {/* Left */}
+      <meshBasicMaterial attach="material-2" map={textureTopBottom} />   {/* Top */}
+      <meshBasicMaterial attach="material-3" map={textureTopBottom} />   {/* Bottom */}
+      <meshBasicMaterial attach="material-4" map={cover} />              {/* Front */}
+      <meshBasicMaterial attach="material-5" map={cover} />              {/* Back */}
     </mesh>
   );
 }
@@ -95,8 +83,11 @@ export default function BookPage() {
                    h-[80vh] 
                    md:absolute md:top-0 md:left-0 md:w-full md:h-full"
       >
-        {/* SCALING */}
-        <div className="w-full h-full scale-[1.2] md:scale-100">
+        {/* SCALING: 
+            Mobile: scale-[1.05] (Зменшено на 15% від 1.2)
+            Desktop: scale-100 
+        */}
+        <div className="w-full h-full scale-[1.05] md:scale-100">
             <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
             <ambientLight intensity={1} />
             

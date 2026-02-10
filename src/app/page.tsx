@@ -11,20 +11,23 @@ export default function BookPage() {
 
   // --- Обробники подій ---
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-    // Блокуємо крутіння, якщо клік був на інтерфейсі (кнопках/тексті) мобільної панелі
+    // Блокуємо крутіння, якщо клік був на інтерфейсі мобільної панелі
     const target = e.target as HTMLElement;
     if (target.closest('.mobile-panel')) return;
 
     setIsDragging(true);
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    // Визначаємо координати залежно від типу події (миша чи тач)
+    const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
     lastMousePos.current = { x: clientX, y: clientY };
   };
 
   const handleMouseMove = (e: MouseEvent | TouchEvent) => {
     if (!isDragging) return;
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    // @ts-ignore - TS іноді свариться на e.touches у змішаних подіях, ігноруємо для білда
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    // @ts-ignore
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
     const deltaX = clientX - lastMousePos.current.x;
     const deltaY = clientY - lastMousePos.current.y;
@@ -50,6 +53,7 @@ export default function BookPage() {
     };
     animate();
 
+    // Додаємо слухачі на window, щоб не губити "драг", якщо курсор вилетів за межі елемента
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('touchmove', handleMouseMove, { passive: false });
@@ -67,12 +71,12 @@ export default function BookPage() {
   return (
     <div className="relative min-h-screen w-full bg-[#FF0000] overflow-hidden">
       
-      <style jsx global>{`
+      {/* Використовуємо dangerouslySetInnerHTML, щоб уникнути помилок парсингу CSS у Vercel */}
+      <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap');
         
         body { margin: 0; font-family: 'Helvetica Neue', sans-serif; }
         
-        /* 3D SCENE STYLES */
         .book-scene {
           perspective: 1500px;
           cursor: grab;
@@ -88,7 +92,7 @@ export default function BookPage() {
           backface-visibility: visible;
         }
 
-        /* Front & Back (Z-offset = half thickness = 12.5px) */
+        /* Front & Back */
         .front, .back {
           transform: translateZ(12.5px);
           background: url('/cover_zine.png') center/cover no-repeat;
@@ -102,30 +106,28 @@ export default function BookPage() {
           background: #fff;
         }
         
-        /* Pages Texture (Right side) */
+        /* Pages Texture */
         .right {
           width: 25px;
           transform: rotateY(90deg) translateZ(287.5px);
           background: repeating-linear-gradient(90deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
 
-        /* Top & Bottom - ВИПРАВЛЕНА ГЕОМЕТРІЯ */
+        /* Top & Bottom */
         .top { 
           height: 25px;
-          top: 0; /* Прибиваємо до верху */
-          /* Повертаємо на 90 градусів і висуваємо на 12.5px, щоб стикувалося з обкладинкою */
+          top: 0;
           transform: rotateX(90deg) translateZ(12.5px); 
           background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
         .bottom { 
           height: 25px;
-          bottom: 0; /* Прибиваємо до низу */
-          /* Повертаємо на -90 градусів і висуваємо на 12.5px */
+          bottom: 0; 
           transform: rotateX(-90deg) translateZ(12.5px);
           background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
 
-        /* TYPOGRAPHY */
+        /* Typography */
         .text-base-custom {
           font-size: 13px;
           line-height: 109.9%;
@@ -150,13 +152,9 @@ export default function BookPage() {
           line-height: 1;
           margin-top: 4px;
         }
-      `}</style>
+      `}} />
 
-      {/* --- КНИГА (Спільна для обох версій) --- */}
-      {/* ВИПРАВЛЕННЯ ЦЕНТРУВАННЯ:
-          На десктопі (md:) додано "md:w-[300px] md:h-[420px]", щоб скинути "w-full" з мобільної версії.
-          Це дозволяє absolute center (left-1/2 top-1/2) працювати коректно.
-      */}
+      {/* --- КНИГА --- */}
       <div 
         className="book-wrapper 
                    w-full h-[55vh] flex justify-center items-center relative z-0
@@ -173,7 +171,6 @@ export default function BookPage() {
             <div className="face back w-[300px] h-[420px]"></div>
             <div className="face spine h-[420px]"></div>
             <div className="face right h-[420px]"></div>
-            {/* Top і Bottom тепер мають однакову висоту та текстуру */}
             <div className="face top w-[300px]"></div>
             <div className="face bottom w-[300px]"></div>
           </div>

@@ -25,8 +25,8 @@ export default function BookPage() {
     const deltaX = clientX - lastMousePos.current.x;
     const deltaY = clientY - lastMousePos.current.y;
 
-    setRotY((prev) => prev + deltaX * 0.5); // Крутіння по горизонталі
-    setRotX((prev) => Math.max(-45, Math.min(45, prev - deltaY * 0.5))); // Крутіння по вертикалі (з обмеженням)
+    setRotY((prev) => prev + deltaX * 0.5);
+    setRotX((prev) => Math.max(-45, Math.min(45, prev - deltaY * 0.5)));
 
     lastMousePos.current = { x: clientX, y: clientY };
   };
@@ -39,7 +39,6 @@ export default function BookPage() {
   useEffect(() => {
     let animationFrameId: number;
     const animate = () => {
-      // Крутимо автоматично тільки якщо не тягнемо мишкою
       if (!isDragging) {
         setRotY(prev => prev + 0.15); 
       }
@@ -47,7 +46,6 @@ export default function BookPage() {
     };
     animate();
 
-    // Підписуємось на глобальні події руху миші
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('touchmove', handleMouseMove, { passive: false });
@@ -64,10 +62,8 @@ export default function BookPage() {
 
 
   return (
-    // Головний контейнер relative для абсолютного позиціонування елементів
     <div className="relative min-h-screen w-full bg-[#FF0000] overflow-hidden">
       
-      {/* Глобальні стилі для книги та шрифтів */}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap');
         
@@ -76,71 +72,89 @@ export default function BookPage() {
         .book-scene {
           perspective: 1500px;
           cursor: grab;
+          transform: scale(1.16); /* Збільшено на 16% */
         }
         .book-scene:active {
           cursor: grabbing;
         }
         .book {
           transform-style: preserve-3d;
-          /* Тінь під книжкою прибрано */
         }
         .face {
           position: absolute;
           backface-visibility: visible;
         }
 
-        /* --- НОВІ РОЗМІРИ (товщина 25px замість 50px) --- */
-        /* Z-зсув = половина товщини = 12.5px */
-
+        /* --- РОЗМІРИ КНИГИ (товщина 25px) --- */
+        
         /* ОБКЛАДИНКИ */
         .front {
           transform: translateZ(12.5px);
           background: url('/cover_zine.png') center/cover no-repeat;
-          /* Тінь на самій обкладинці прибрано */
         }
         .back {
           transform: rotateY(180deg) translateZ(12.5px);
           background: url('/cover_zine.png') center/cover no-repeat;
-           /* Тінь прибрано */
         }
-        /* КОРІНЕЦЬ (білий, без тексту) */
+        
+        /* КОРІНЕЦЬ (білий) */
         .spine {
           width: 25px;
           transform: rotateY(-90deg) translateZ(12.5px);
           background: #fff;
         }
-        /* СТОРІНКИ ЗБОКУ (червоно-біла текстура) */
+        
+        /* БІЧНИЙ ЗРІЗ (смужки вертикальні) */
         .right {
           width: 25px;
-          transform: rotateY(90deg) translateZ(287.5px); /* Ширина 300 - Z-зсув 12.5 */
+          transform: rotateY(90deg) translateZ(287.5px);
+          /* Градієнт 90deg створює вертикальні лінії вздовж висоти */
           background: repeating-linear-gradient(90deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
-        /* ВЕРХ І НИЗ */
+        
+        /* ВЕРХНІЙ І НИЖНІЙ ЗРІЗ (смужки горизонтальні вздовж товщини) */
         .top { 
           height: 25px;
           transform: rotateX(90deg) translateZ(12.5px); 
-          background: #fff;
+          /* Градієнт 0deg створює лінії, що йдуть вздовж довгої сторони (паралельно обкладинці) */
+          background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
         .bottom { 
           height: 25px;
-          transform: rotateX(-90deg) translateZ(395px); /* Висота 420 - товщина 25 */
-          background: #fff;
+          transform: rotateX(-90deg) translateZ(395px);
+          background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
         }
 
         /* --- ТИПОГРАФІКА --- */
         .text-base-custom {
           font-size: 13px;
           line-height: 109.9%;
-          letter-spacing: -0.04em; /* ≈ -4% */
+          letter-spacing: -0.04em;
         }
         .title-custom {
           font-size: 26px;
           line-height: 109.9%;
           letter-spacing: -0.04em;
         }
+        
+        /* Стилі для цін */
+        .price-text {
+          font-size: 23px;
+          font-weight: bold;
+          line-height: 1;
+          transform: scaleX(1.25); /* Розтягування тексту як у заголовку */
+          transform-origin: center;
+        }
+        .label-text {
+          font-size: 13px;
+          letter-spacing: -0.04em;
+          font-weight: bold;
+          line-height: 1;
+          margin-top: 4px; /* Невеликий відступ від ціни */
+        }
       `}</style>
 
-      {/* 3D КНИГА (По центру) */}
+      {/* 3D КНИГА */}
       <div 
         className="book-scene absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[420px] z-0"
         onMouseDown={handleMouseDown}
@@ -159,43 +173,62 @@ export default function BookPage() {
         </div>
       </div>
 
-      {/* ПЛАШКА З ТЕКСТОМ (Правий верхній кут) */}
-      <div 
-        className="absolute top-0 right-0 bg-[#D9D9D9] text-black z-10 flex flex-col"
-        style={{
-          width: '348px',
-          height: '432px',
-          padding: '18px 18px 14px 14px'
-        }}
-      >
-        {/* Заголовок */}
-        <h1 className="title-custom font-bold m-0 origin-left scale-x-125 w-[80%] mb-5 leading-[1.1]">
-          Зін «Мама»<br />
-          Христина Новікова
-        </h1>
+      {/* ПРАВА КОЛОНКА (Фіксована ширина 348px) */}
+      <div className="absolute top-0 right-0 flex flex-col z-10 w-[348px]">
+        
+        {/* ОСНОВНА ПАНЕЛЬ */}
+        <div 
+          className="bg-[#D9D9D9] text-black flex flex-col relative"
+          style={{
+            height: '432px',
+            padding: '15px 18px 15px 14px'
+          }}
+        >
+          <h1 className="title-custom font-bold m-0 origin-left scale-x-125 w-[80%] mb-5 leading-[1.1]">
+            Зін «Мама»<br />
+            Христина Новікова
+          </h1>
 
-        {/* Мета-інфо */}
-        <div className="text-base-custom font-bold mb-3">
-          Дизайн та верстка: Володимир Хоменко<br />
-          Видавництво: IDINAHUI PUBLISHING<br />
-          Формат А5, 68 с.<br />
-          Київ, 2026
+          <div className="text-base-custom font-bold mb-3">
+            Дизайн та верстка: Володимир Хоменко<br />
+            Видавництво: IDINAHUI PUBLISHING<br />
+            Формат А5, 68 с.<br />
+            Київ, 2026
+          </div>
+
+          <p className="text-base-custom font-bold mb-auto">
+            Цей зін апропріює естетику культової пачки Marlboro Red, перетворюючи хроніку життя в окупації на візуальний об’єкт із попередженням про небезпеку. Червоний колір тривоги тут римується з агресивним брендингом, а очікування повідомлень від мами з Маріуполя (2022–2026) стає метафорою залежності, від якої неможливо відмовитися. Це документація зв’язку, де буденні поради «поїсти супу» перемішані зі звуками вибухів, а любов до рідного дому межує з фатальним ризиком там залишатися.
+          </p>
+
+          <a 
+            href="ВСТАВ_СЮДИ_ЛІНК_НА_БАНКУ" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="bg-white text-black h-[82px] w-full flex justify-center items-center text-[25px] font-bold tracking-[-0.04em] no-underline hover:scale-[1.02] transition-transform mt-4"
+          >
+            Monopay
+          </a>
         </div>
 
-        {/* Опис */}
-        <p className="text-base-custom font-bold mb-auto">
-          Цей зін апропріює естетику культової пачки Marlboro Red, перетворюючи хроніку життя в окупації на візуальний об’єкт із попередженням про небезпеку. Червоний колір тривоги тут римується з агресивним брендингом, а очікування повідомлень від мами з Маріуполя (2022–2026) стає метафорою залежності, від якої неможливо відмовитися. Це документація зв’язку, де буденні поради «поїсти супу» перемішані зі звуками вибухів, а любов до рідного дому межує з фатальним ризиком там залишатися.
-        </p>
+        {/* БЛОК ЦІН (Знизу) - Висота ~63px */}
+        <div className="flex w-full" style={{ height: '63px' }}>
+          {/* Pre-order (White) */}
+          <div className="w-1/2 bg-white text-black flex flex-col justify-center items-center">
+             <div className="price-text">666₴</div>
+             <div className="label-text">pre-order</div>
+          </div>
+          
+          {/* Full price (Grey) */}
+          <div className="w-1/2 bg-[#ACACAC] text-black flex flex-col justify-center items-center">
+             <div className="price-text relative">
+                <span className="opacity-40">777₴</span>
+                {/* Лінія перекреслення */}
+                <span className="absolute left-0 top-1/2 w-full h-[2px] bg-black opacity-40 -translate-y-1/2"></span>
+             </div>
+             <div className="label-text">full price</div>
+          </div>
+        </div>
 
-        {/* Кнопка Monopay */}
-        <a 
-          href="ВСТАВ_СЮДИ_ЛІНК_НА_БАНКУ" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="bg-white text-black h-[82px] w-full flex justify-center items-center text-[25px] font-bold tracking-[-0.04em] no-underline hover:scale-[1.02] transition-transform mt-4"
-        >
-          Monopay
-        </a>
       </div>
     </div>
   );

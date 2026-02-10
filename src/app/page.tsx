@@ -1,52 +1,36 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
-import { OrbitControls, useTexture } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
 // --- КОМПОНЕНТ КНИГИ (3D MODEL) ---
 function Book() {
-  // Завантажуємо твою обкладинку
+  // Завантажуємо текстури
   const coverTexture = useLoader(THREE.TextureLoader, '/cover_zine.png');
-  
-  // Генеруємо текстуру смужок (сторінок) програмно, щоб не треба було файлів
-  const pagesTexture = useMemo(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 64;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 64, 64);
-      ctx.fillStyle = '#e60000'; // Червоні смужки
-      // Малюємо смужки
-      for (let i = 0; i < 64; i += 4) {
-        ctx.fillRect(i, 0, 2, 64); 
-      }
-    }
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.RepeatWrapping;
-    return tex;
-  }, []);
+  const pagesTexture = useLoader(THREE.TextureLoader, '/A5 - 2.png'); // Твоя текстура сторінок
+
+  // Налаштування повторення текстури сторінок, якщо треба (але зазвичай норм і так)
+  pagesTexture.wrapS = THREE.RepeatWrapping;
+  pagesTexture.wrapT = THREE.RepeatWrapping;
 
   // Розміри книги: Ширина 3, Висота 4.2, Товщина 0.25
   const args: [number, number, number] = [3, 4.2, 0.25];
 
   return (
-    <mesh rotation={[0, -0.5, 0]}> {/* Початковий поворот */}
+    <mesh rotation={[0, -0.5, 0]}> 
       <boxGeometry args={args} />
       {/* Масив матеріалів для 6 граней куба: 
           Order: Right, Left, Top, Bottom, Front, Back */}
       
-      {/* 1. Right (Сторінки збоку) */}
+      {/* 1. Right (Торцева сторона сторінок) - Картинка */}
       <meshBasicMaterial map={pagesTexture} />
-      {/* 2. Left (Корінець - білий) */}
+      {/* 2. Left (Корінець) - Просто білий */}
       <meshBasicMaterial color="white" />
-      {/* 3. Top (Сторінки зверху - треба повернути текстуру) */}
+      {/* 3. Top (Сторінки зверху) - Картинка */}
       <meshBasicMaterial map={pagesTexture} />
-      {/* 4. Bottom (Сторінки знизу) */}
+      {/* 4. Bottom (Сторінки знизу) - Картинка */}
       <meshBasicMaterial map={pagesTexture} />
       {/* 5. Front (Обкладинка) */}
       <meshBasicMaterial map={coverTexture} />
@@ -73,22 +57,28 @@ export default function BookPage() {
       `}} />
 
       {/* --- 3D СЦЕНА (CANVAS) --- */}
-      <div className="book-wrapper relative z-0 w-full h-[60vh] md:absolute md:top-0 md:left-0 md:w-full md:h-full">
-        <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-          {/* Світло (хоча для BasicMaterial воно не критичне, але хай буде для об'єму) */}
-          <ambientLight intensity={1} />
-          
-          {/* Сама книга */}
-          <Book />
+      <div 
+        className="book-wrapper relative z-0 w-full 
+                   /* Mobile: Збільшена висота зони (75vh), щоб опустити текст */
+                   h-[75vh] 
+                   /* Desktop: на весь екран, перекривається панеллю справа */
+                   md:absolute md:top-0 md:left-0 md:w-full md:h-full"
+      >
+        {/* Mobile: scale-[1.3] (збільшена книга), Desktop: scale-100 (стандарт) */}
+        <div className="w-full h-full scale-[1.3] md:scale-100">
+            <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
+            <ambientLight intensity={1} />
+            
+            <Book />
 
-          {/* Контроли: дозволяють крутити, зумити(відключено), і авто-обертання */}
-          <OrbitControls 
-            enableZoom={false} 
-            enablePan={false}
-            autoRotate={true}
-            autoRotateSpeed={4.0} // Швидкість обертання
-          />
-        </Canvas>
+            <OrbitControls 
+                enableZoom={false} 
+                enablePan={false}
+                autoRotate={true}
+                autoRotateSpeed={4.0}
+            />
+            </Canvas>
+        </div>
       </div>
 
       {/* --- MOBILE PANEL (Текст знизу) --- */}

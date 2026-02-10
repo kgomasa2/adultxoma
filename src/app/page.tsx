@@ -9,11 +9,11 @@ import * as THREE from 'three';
 function Book() {
   // Завантажуємо текстури
   const coverTexture = useLoader(THREE.TextureLoader, '/cover_zine.png');
-  const pagesTexture = useLoader(THREE.TextureLoader, '/A5 - 2.png'); // Твоя текстура сторінок
+  const pagesTexture = useLoader(THREE.TextureLoader, '/A5 - 2.png'); 
 
-  // Налаштування повторення текстури сторінок, якщо треба (але зазвичай норм і так)
-  pagesTexture.wrapS = THREE.RepeatWrapping;
-  pagesTexture.wrapT = THREE.RepeatWrapping;
+  // Корекція кольору, щоб не було тьмяним
+  coverTexture.colorSpace = THREE.SRGBColorSpace;
+  pagesTexture.colorSpace = THREE.SRGBColorSpace;
 
   // Розміри книги: Ширина 3, Висота 4.2, Товщина 0.25
   const args: [number, number, number] = [3, 4.2, 0.25];
@@ -21,20 +21,25 @@ function Book() {
   return (
     <mesh rotation={[0, -0.5, 0]}> 
       <boxGeometry args={args} />
-      {/* Масив матеріалів для 6 граней куба: 
-          Order: Right, Left, Top, Bottom, Front, Back */}
+      {/* Масив матеріалів для 6 граней куба. 
+          Порядок у Three.js: Right, Left, Top, Bottom, Front, Back */}
       
-      {/* 1. Right (Торцева сторона сторінок) - Картинка */}
+      {/* 0. Right (Зріз сторінок справа) -> Текстура сторінок */}
       <meshBasicMaterial map={pagesTexture} />
-      {/* 2. Left (Корінець) - Просто білий */}
+      
+      {/* 1. Left (Корінець) -> Білий колір */}
       <meshBasicMaterial color="white" />
-      {/* 3. Top (Сторінки зверху) - Картинка */}
+      
+      {/* 2. Top (Зріз зверху) -> Текстура сторінок */}
       <meshBasicMaterial map={pagesTexture} />
-      {/* 4. Bottom (Сторінки знизу) - Картинка */}
+      
+      {/* 3. Bottom (Зріз знизу) -> Текстура сторінок */}
       <meshBasicMaterial map={pagesTexture} />
-      {/* 5. Front (Обкладинка) */}
+      
+      {/* 4. Front (Обкладинка) */}
       <meshBasicMaterial map={coverTexture} />
-      {/* 6. Back (Обкладинка ззаду) */}
+      
+      {/* 5. Back (Задня обкладинка) */}
       <meshBasicMaterial map={coverTexture} />
     </mesh>
   );
@@ -45,7 +50,7 @@ export default function BookPage() {
   return (
     <div className="relative min-h-screen w-full bg-[#FF0000] overflow-x-hidden flex flex-col md:block">
       
-      {/* Глобальні стилі шрифтів */}
+      {/* Стилі шрифтів */}
       <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap');
         body { margin: 0; font-family: 'Helvetica Neue', sans-serif; }
@@ -59,13 +64,16 @@ export default function BookPage() {
       {/* --- 3D СЦЕНА (CANVAS) --- */}
       <div 
         className="book-wrapper relative z-0 w-full 
-                   /* Mobile: Збільшена висота зони (75vh), щоб опустити текст */
+                   /* Mobile Height: 75vh */
                    h-[75vh] 
-                   /* Desktop: на весь екран, перекривається панеллю справа */
+                   /* Desktop: Full screen behind panel */
                    md:absolute md:top-0 md:left-0 md:w-full md:h-full"
       >
-        {/* Mobile: scale-[1.3] (збільшена книга), Desktop: scale-100 (стандарт) */}
-        <div className="w-full h-full scale-[1.3] md:scale-100">
+        {/* SCALING: 
+            Mobile: scale-[1.15] (було 1.3, зменшив на ~10%)
+            Desktop: scale-100 (без змін) 
+        */}
+        <div className="w-full h-full scale-[1.15] md:scale-100">
             <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
             <ambientLight intensity={1} />
             
@@ -75,7 +83,7 @@ export default function BookPage() {
                 enableZoom={false} 
                 enablePan={false}
                 autoRotate={true}
-                autoRotateSpeed={4.0}
+                autoRotateSpeed={3.4} /* Швидкість зменшено з 4.0 до 3.4 (-15%) */
             />
             </Canvas>
         </div>

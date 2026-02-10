@@ -7,43 +7,53 @@ import * as THREE from 'three';
 
 // --- КОМПОНЕНТ КНИГИ (3D MODEL) ---
 function Book() {
-  // Завантажуємо текстури. ФАЙЛИ МАЮТЬ БУТИ В ПАПЦІ /public
+  // Завантажуємо базові текстури
   const coverTexture = useLoader(THREE.TextureLoader, '/cover_zine.png');
-  const pagesTexture = useLoader(THREE.TextureLoader, '/A5 - 2.png'); 
+  const pagesTextureBase = useLoader(THREE.TextureLoader, '/A5 - 2.png');
 
   // Корекція кольору
   coverTexture.colorSpace = THREE.SRGBColorSpace;
-  pagesTexture.colorSpace = THREE.SRGBColorSpace;
+  pagesTextureBase.colorSpace = THREE.SRGBColorSpace;
 
-  // --- ФІКС РОЗТЯГНУТОЇ ТЕКСТУРИ ---
-  // Вмикаємо режим повторення (тайлінгу) для текстури сторінок
-  pagesTexture.wrapS = THREE.RepeatWrapping;
-  pagesTexture.wrapT = THREE.RepeatWrapping;
-  // Налаштовуємо кількість повторень. 
-  // (4, 4) означає, що текстура повториться 4 рази по горизонталі і вертикалі на грані.
-  // Це має прибрати ефект "сплюснення".
-  pagesTexture.repeat.set(4, 4);
+  // --- НАЛАШТУВАННЯ ТЕКСТУРИ ДЛЯ БІЧНОЇ ГРАНІ (СПРАВА) ---
+  const rightPageTexture = pagesTextureBase.clone();
+  rightPageTexture.wrapS = THREE.RepeatWrapping;
+  rightPageTexture.wrapT = THREE.RepeatWrapping;
+  // Повторюємо текстуру 1 раз по ширині (товщині) і 4 рази по висоті
+  rightPageTexture.repeat.set(1, 4);
+  rightPageTexture.needsUpdate = true;
+
+  // --- НАЛАШТУВАННЯ ТЕКСТУРИ ДЛЯ ВЕРХНЬОЇ ТА НИЖНЬОЇ ГРАНЕЙ ---
+  const topBottomPageTexture = pagesTextureBase.clone();
+  topBottomPageTexture.wrapS = THREE.RepeatWrapping;
+  topBottomPageTexture.wrapT = THREE.RepeatWrapping;
+  // Повертаємо текстуру на 90 градусів, щоб смужки йшли вздовж довгої сторони
+  topBottomPageTexture.rotation = Math.PI / 2;
+  topBottomPageTexture.center.set(0.5, 0.5);
+  // Повторюємо текстуру 3 рази по довжині (ширині книги) і 1 раз по товщині
+  topBottomPageTexture.repeat.set(3, 1);
+  topBottomPageTexture.needsUpdate = true;
 
   // Розміри книги: Ширина 3, Висота 4.2, Товщина 0.25
   const args: [number, number, number] = [3, 4.2, 0.25];
 
   return (
-    <mesh rotation={[0, -0.5, 0]}> 
+    <mesh rotation={[0, -0.5, 0]}>
       <boxGeometry args={args} />
       {/* Масив матеріалів для 6 граней куба. 
           Порядок у Three.js: Right, Left, Top, Bottom, Front, Back */}
       
-      {/* 0. Right (Зріз сторінок справа) -> Текстура сторінок */}
-      <meshBasicMaterial map={pagesTexture} />
+      {/* 0. Right (Зріз сторінок справа) -> Вертикальне повторення */}
+      <meshBasicMaterial map={rightPageTexture} />
       
-      {/* 1. Left (Корінець) -> Просто білий колір (без текстури) */}
+      {/* 1. Left (Корінець) -> Просто білий колір */}
       <meshBasicMaterial color="#ffffff" />
       
-      {/* 2. Top (Зріз зверху) -> Текстура сторінок */}
-      <meshBasicMaterial map={pagesTexture} />
+      {/* 2. Top (Зріз зверху) -> Горизонтальне повторення (повернута текстура) */}
+      <meshBasicMaterial map={topBottomPageTexture} />
       
-      {/* 3. Bottom (Зріз знизу) -> Текстура сторінок */}
-      <meshBasicMaterial map={pagesTexture} />
+      {/* 3. Bottom (Зріз знизу) -> Горизонтальне повторення (повернута текстура) */}
+      <meshBasicMaterial map={topBottomPageTexture} />
       
       {/* 4. Front (Обкладинка) */}
       <meshBasicMaterial map={coverTexture} />
@@ -73,14 +83,14 @@ export default function BookPage() {
       {/* --- 3D СЦЕНА (CANVAS) --- */}
       <div 
         className="book-wrapper relative z-0 w-full 
-                   /* Mobile Height: Збільшено до 80vh, щоб ще опустити текст */
+                   /* Mobile Height: 80vh */
                    h-[80vh] 
                    /* Desktop: Full screen behind panel */
                    md:absolute md:top-0 md:left-0 md:w-full md:h-full"
       >
         {/* SCALING: 
-            Mobile: scale-[1.2] (Ще трохи більша книга)
-            Desktop: scale-100 (без змін) 
+            Mobile: scale-[1.2]
+            Desktop: scale-100 
         */}
         <div className="w-full h-full scale-[1.2] md:scale-100">
             <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>

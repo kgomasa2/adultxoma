@@ -76,73 +76,75 @@ export default function BookPage() {
         .book-scene {
           perspective: 1500px;
           cursor: grab;
+          /* Примусова активація GPU */
+          transform: translate3d(0,0,0); 
         }
         .book-scene:active {
           cursor: grabbing;
         }
         
-        /* Оптимізація для мобільних (GPU acceleration) */
         .book {
           transform-style: preserve-3d;
-          will-change: transform; 
+          /* Важливий фікс для iOS: */
+          -webkit-transform-style: preserve-3d;
+          width: 100%;
+          height: 100%;
+          position: relative;
         }
         
         .face {
           position: absolute;
-          backface-visibility: hidden; /* Важливо для уникнення мерехтіння */
+          /* ГОЛОВНИЙ ФІКС МЕРЕХТІННЯ: */
+          backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
+          /* Біла підкладка, щоб не було прозорості */
+          background-color: #fff;
+          /* Антиаліасинг для країв */
+          outline: 1px solid transparent; 
         }
 
-        /* Front & Back */
-        .front, .back {
-          transform: translateZ(12.5px);
+        /* Розміри */
+        .front, .back { width: 300px; height: 420px; }
+        .spine { width: 25px; height: 420px; }
+        .right { width: 25px; height: 420px; }
+        .top, .bottom { width: 300px; height: 25px; }
+
+        /* Позиціонування (Z = 12.5px = половина товщини) */
+        .front {
+          transform: rotateY(0deg) translateZ(12.5px);
           background: url('/cover_zine.png') center/cover no-repeat;
-          backface-visibility: visible; /* Тут треба бачити, бо це основні грані */
-          -webkit-backface-visibility: visible;
         }
-        .back { transform: rotateY(180deg) translateZ(12.5px); }
-        
-        /* Spine */
+        .back {
+          transform: rotateY(180deg) translateZ(12.5px);
+          background: url('/cover_zine.png') center/cover no-repeat;
+        }
         .spine {
-          width: 25px;
           transform: rotateY(-90deg) translateZ(12.5px);
-          background: #fff;
-          backface-visibility: visible;
         }
-        
-        /* Pages Texture */
         .right {
-          width: 25px;
-          transform: rotateY(90deg) translateZ(287.5px);
+          transform: rotateY(90deg) translateZ(287.5px); /* 300 - 12.5 */
           background: repeating-linear-gradient(90deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
-          backface-visibility: visible;
         }
-
-        /* Top & Bottom */
         .top { 
-          height: 25px;
           top: 0;
           transform: rotateX(90deg) translateZ(12.5px); 
           background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
-          backface-visibility: visible;
         }
         .bottom { 
-          height: 25px;
           bottom: 0; 
           transform: rotateX(-90deg) translateZ(12.5px);
           background: repeating-linear-gradient(0deg, #fff, #fff 1px, #e60000 1px, #e60000 2px);
-          backface-visibility: visible;
         }
 
-        /* Typography Updated */
+        /* Typography */
         .text-base-custom {
           font-size: 13px;
-          line-height: 103%; /* Нове значення */
+          line-height: 103%;
           letter-spacing: -0.04em;
         }
         .title-custom {
           font-size: 26px;
-          line-height: 103%; /* Нове значення */
+          line-height: 103%;
           letter-spacing: -0.04em;
         }
         .price-text {
@@ -161,28 +163,28 @@ export default function BookPage() {
         }
       `}} />
 
-      {/* --- КНИГА (Спільна) --- */}
+      {/* --- КНИГА --- */}
       <div 
         className="book-wrapper 
                    w-full flex justify-center items-center relative z-0
-                   /* Mobile styles: збільшена висота контейнера (65vh) */
-                   h-[65vh] 
-                   /* Desktop styles: */
+                   /* Mobile: Червона зона тепер більша (70vh), щоб опустити текст */
+                   h-[70vh] 
+                   /* Desktop: */
                    md:absolute md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[300px] md:h-[420px] md:h-auto"
         onMouseDown={handleMouseDown}
         onTouchStart={handleMouseDown}
       >
-        <div className="book-scene w-[300px] h-[420px] md:scale-[1.16] scale-[1.1]"> {/* Scale збільшено для моб */}
+        <div className="book-scene w-[300px] h-[420px] md:scale-[1.16] scale-[1.1]">
           <div 
-            className="book w-full h-full relative transition-transform duration-100 ease-out"
+            className="book"
             style={{ transform: `rotateX(${rotX}deg) rotateY(${rotY}deg)` }}
           >
-            <div className="face front w-[300px] h-[420px]"></div>
-            <div className="face back w-[300px] h-[420px]"></div>
-            <div className="face spine h-[420px]"></div>
-            <div className="face right h-[420px]"></div>
-            <div className="face top w-[300px]"></div>
-            <div className="face bottom w-[300px]"></div>
+            <div className="face front"></div>
+            <div className="face back"></div>
+            <div className="face spine"></div>
+            <div className="face right"></div>
+            <div className="face top"></div>
+            <div className="face bottom"></div>
           </div>
         </div>
       </div>
@@ -190,7 +192,8 @@ export default function BookPage() {
       {/* ========================================= */}
       {/* MOBILE LAYOUT (< 768px) */}
       {/* ========================================= */}
-      <div className="mobile-panel md:hidden relative w-full bg-[#D9D9D9] p-[13px] flex flex-col z-10 min-h-[35vh]">
+      {/* min-h-[30vh] - зона для тексту менша, бо ми віддали більше місця книзі */}
+      <div className="mobile-panel md:hidden relative w-full bg-[#D9D9D9] p-[13px] flex flex-col z-10 min-h-[30vh]">
         <h1 className="title-custom font-bold m-0 origin-left scale-x-125 w-[80%] mb-[18px]">
           Зін «Мама»<br />
           Христина Новікова
